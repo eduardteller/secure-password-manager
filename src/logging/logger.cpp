@@ -31,7 +31,6 @@ void Logger::initialize(const std::string& logPath) {
         return;
     }
     
-    // Set restrictive permissions on log file (owner read/write only)
     chmod(logPath.c_str(), S_IRUSR | S_IWUSR);
     
     initialized_ = true;
@@ -100,7 +99,6 @@ void Logger::log(LogLevel level, EventType event, const std::string& message, co
         logFile_.flush();
     }
     
-    // Also print security events to stderr
     if (level == LogLevel::SECURITY || level == LogLevel::ERROR) {
         std::cerr << logEntry.str() << std::endl;
     }

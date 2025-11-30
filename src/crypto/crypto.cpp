@@ -11,11 +11,9 @@
 #include <memory>
 
 Crypto::Crypto() {
-    // OpenSSL is automatically initialized in OpenSSL 1.1.0+
 }
 
 Crypto::~Crypto() {
-    // Cleanup handled by OpenSSL automatically
 }
 
 std::vector<uint8_t> Crypto::randomBytes(size_t length) {
@@ -41,7 +39,6 @@ std::vector<uint8_t> Crypto::deriveKey(const std::string& password, const std::v
         throw std::runtime_error("Failed to create KDF context");
     }
     
-    // Set up PBKDF2 parameters
     OSSL_PARAM params[4];
     params[0] = OSSL_PARAM_construct_octet_string("pass", 
                                                    const_cast<char*>(password.c_str()), 
@@ -63,38 +60,30 @@ std::vector<uint8_t> Crypto::deriveKey(const std::string& password, const std::v
 }
 
 std::string Crypto::hash(const std::string& input) {
-    // Generate random salt
     std::vector<uint8_t> salt = randomBytes(SALT_SIZE);
     
-    // Derive hash using PBKDF2
     std::vector<uint8_t> hash = deriveKey(input, salt, 32);
     
-    // Combine salt + hash
     std::vector<uint8_t> combined;
     combined.insert(combined.end(), salt.begin(), salt.end());
     combined.insert(combined.end(), hash.begin(), hash.end());
     
-    // Return as base64
     return toBase64(combined);
 }
 
 bool Crypto::verifyHash(const std::string& input, const std::string& hashStr) {
     try {
-        // Decode the stored hash
         std::vector<uint8_t> combined = fromBase64(hashStr);
         
         if (combined.size() < SALT_SIZE) {
             return false;
         }
         
-        // Extract salt and stored hash
         std::vector<uint8_t> salt(combined.begin(), combined.begin() + SALT_SIZE);
         std::vector<uint8_t> storedHash(combined.begin() + SALT_SIZE, combined.end());
         
-        // Derive hash from input using the same salt
         std::vector<uint8_t> computedHash = deriveKey(input, salt, storedHash.size());
         
-        // Constant-time comparison
         if (computedHash.size() != storedHash.size()) {
             return false;
         }
@@ -106,33 +95,27 @@ bool Crypto::verifyHash(const std::string& input, const std::string& hashStr) {
 }
 
 std::vector<uint8_t> Crypto::encrypt(const std::string& plaintext, const std::string& key) {
-    // Generate random IV
     std::vector<uint8_t> iv = randomBytes(IV_SIZE);
     
-    // Derive encryption key from password
     std::vector<uint8_t> salt = randomBytes(SALT_SIZE);
     std::vector<uint8_t> derivedKey = deriveKey(key, salt, KEY_SIZE);
     
-    // Create cipher context
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
         secureWipe(derivedKey);
         throw std::runtime_error("Failed to create cipher context");
     }
     
-    // Initialize encryption
     if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, derivedKey.data(), iv.data()) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         secureWipe(derivedKey);
         throw std::runtime_error("Failed to initialize encryption");
     }
     
-    // Allocate output buffer
     std::vector<uint8_t> ciphertext(plaintext.length() + EVP_CIPHER_block_size(EVP_aes_256_gcm()));
     int len = 0;
     int ciphertext_len = 0;
     
-    // Encrypt plaintext
     if (EVP_EncryptUpdate(ctx, ciphertext.data(), &len, 
                           reinterpret_cast<const unsigned char*>(plaintext.c_str()), 
                           static_cast<int>(plaintext.length())) != 1) {
@@ -142,7 +125,6 @@ std::vector<uint8_t> Crypto::encrypt(const std::string& plaintext, const std::st
     }
     ciphertext_len = len;
     
-    // Finalize encryption
     if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         secureWipe(derivedKey);
@@ -151,7 +133,6 @@ std::vector<uint8_t> Crypto::encrypt(const std::string& plaintext, const std::st
     ciphertext_len += len;
     ciphertext.resize(static_cast<size_t>(ciphertext_len));
     
-    // Get authentication tag
     std::vector<uint8_t> tag(TAG_SIZE);
     if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, TAG_SIZE, tag.data()) != 1) {
         EVP_CIPHER_CTX_free(ctx);
@@ -162,7 +143,6 @@ std::vector<uint8_t> Crypto::encrypt(const std::string& plaintext, const std::st
     EVP_CIPHER_CTX_free(ctx);
     secureWipe(derivedKey);
     
-    // Combine: salt + IV + ciphertext + tag
     std::vector<uint8_t> result;
     result.insert(result.end(), salt.begin(), salt.end());
     result.insert(result.end(), iv.begin(), iv.end());
@@ -173,12 +153,10 @@ std::vector<uint8_t> Crypto::encrypt(const std::string& plaintext, const std::st
 }
 
 std::string Crypto::decrypt(const std::vector<uint8_t>& ciphertext, const std::string& key) {
-    // Minimum size check: salt + IV + tag
     if (ciphertext.size() < SALT_SIZE + IV_SIZE + TAG_SIZE) {
         throw std::runtime_error("Invalid ciphertext: too short");
     }
     
-    // Extract components
     std::vector<uint8_t> salt(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
     std::vector<uint8_t> iv(ciphertext.begin() + SALT_SIZE, 
                             ciphertext.begin() + SALT_SIZE + IV_SIZE);
@@ -186,29 +164,24 @@ std::string Crypto::decrypt(const std::vector<uint8_t>& ciphertext, const std::s
     std::vector<uint8_t> encrypted(ciphertext.begin() + SALT_SIZE + IV_SIZE, 
                                    ciphertext.end() - TAG_SIZE);
     
-    // Derive decryption key
     std::vector<uint8_t> derivedKey = deriveKey(key, salt, KEY_SIZE);
     
-    // Create cipher context
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
         secureWipe(derivedKey);
         throw std::runtime_error("Failed to create cipher context");
     }
     
-    // Initialize decryption
     if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, derivedKey.data(), iv.data()) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         secureWipe(derivedKey);
         throw std::runtime_error("Failed to initialize decryption");
     }
     
-    // Allocate output buffer
     std::vector<uint8_t> plaintext(encrypted.size() + EVP_CIPHER_block_size(EVP_aes_256_gcm()));
     int len = 0;
     int plaintext_len = 0;
     
-    // Decrypt ciphertext
     if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, encrypted.data(), 
                           static_cast<int>(encrypted.size())) != 1) {
         EVP_CIPHER_CTX_free(ctx);
@@ -217,14 +190,12 @@ std::string Crypto::decrypt(const std::vector<uint8_t>& ciphertext, const std::s
     }
     plaintext_len = len;
     
-    // Set authentication tag
     if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_SIZE, tag.data()) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         secureWipe(derivedKey);
         throw std::runtime_error("Failed to set authentication tag");
     }
     
-    // Finalize decryption (this verifies the tag)
     if (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) != 1) {
         EVP_CIPHER_CTX_free(ctx);
         secureWipe(derivedKey);

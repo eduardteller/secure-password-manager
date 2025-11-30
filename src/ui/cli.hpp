@@ -11,14 +11,12 @@ public:
     CLI();
     ~CLI();
 
-    // Main entry point for CLI
     int run(int argc, char* argv[]);
 
 private:
     void printHelp();
     void printVersion();
     
-    // Command handlers
     void handleInit();
     void handleAdd();
     void handleGet();
@@ -26,7 +24,6 @@ private:
     void handleDelete();
     void handleUpdate();
     
-    // Helper methods
     std::string getPassword(const std::string& prompt);
     std::string getInput(const std::string& prompt);
     bool confirmAction(const std::string& prompt);
@@ -36,5 +33,5 @@ private:
     std::string vaultPath_;
 };
 
-#endif // CLI_HPP
+#endif
 

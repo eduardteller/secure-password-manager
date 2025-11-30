@@ -30,18 +30,14 @@ class Logger {
 public:
     static Logger& getInstance();
     
-    // Initialize logger with log file path
     void initialize(const std::string& logPath);
     
-    // Log an event
     void log(LogLevel level, EventType event, const std::string& message);
     void log(LogLevel level, EventType event, const std::string& message, const std::string& sessionId);
     
-    // Security-specific logging
     void logAuthAttempt(bool success, const std::string& sessionId);
     void logOperation(EventType event, bool success, const std::string& sessionId);
     
-    // Disable copying
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;
 
@@ -58,5 +54,5 @@ private:
     bool initialized_;
 };
 
-#endif // LOGGER_HPP
+#endif
 

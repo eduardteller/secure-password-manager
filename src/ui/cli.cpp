@@ -13,7 +13,6 @@ CLI::CLI() : vault_(std::make_unique<Vault>()) {
 }
 
 CLI::~CLI() {
-    // Cleanup
 }
 
 std::string CLI::getDefaultVaultPath() {
@@ -29,7 +28,6 @@ std::string CLI::getPassword(const std::string& prompt) {
     std::cout << prompt;
     std::cout.flush();
     
-    // Disable echo
     termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
@@ -39,7 +37,6 @@ std::string CLI::getPassword(const std::string& prompt) {
     std::string password;
     std::getline(std::cin, password);
     
-    // Re-enable echo
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     std::cout << std::endl;
     
@@ -62,7 +59,6 @@ bool CLI::confirmAction(const std::string& prompt) {
 }
 
 int CLI::run(int argc, char* argv[]) {
-    // Initialize logger
     const char* home = getenv("HOME");
     std::string logPath = home ? (std::string(home) + "/.spm_log") : "./spm_log";
     
@@ -250,7 +246,6 @@ void CLI::handleUpdate() {
     
     std::string service = getInput("Enter service name: ");
     
-    // Retrieve existing credentials
     std::string currentUsername, currentPassword;
     try {
         auto [user, pass] = vault_->getCredentials(service);
@@ -336,7 +331,6 @@ void CLI::handleDelete() {
     
     std::string service = getInput("Enter service name: ");
     
-    // Show what will be deleted
     std::string username;
     try {
         auto [user, pass] = vault_->getCredentials(service);
