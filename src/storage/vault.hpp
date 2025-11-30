@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <utility>
 
 class Crypto;
 
@@ -36,6 +37,9 @@ public:
     
     // Retrieve a password entry
     std::string getPassword(const std::string& service, const std::string& username);
+    
+    // Retrieve credentials (username and password) by service name only
+    std::pair<std::string, std::string> getCredentials(const std::string& service);
     
     // Delete a password entry
     bool deletePassword(const std::string& service, const std::string& username);

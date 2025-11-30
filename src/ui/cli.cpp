@@ -114,7 +114,7 @@ void CLI::printHelp() {
     std::cout << "\nCommands:" << std::endl;
     std::cout << "  init         Initialize a new password vault" << std::endl;
     std::cout << "  add          Add a new password entry" << std::endl;
-    std::cout << "  get          Retrieve a password" << std::endl;
+    std::cout << "  get          Retrieve credentials (username & password)" << std::endl;
     std::cout << "  update       Update an existing password" << std::endl;
     std::cout << "  list         List all services" << std::endl;
     std::cout << "  delete       Delete a password entry" << std::endl;
@@ -202,7 +202,7 @@ void CLI::handleAdd() {
 }
 
 void CLI::handleGet() {
-    std::cout << "=== Retrieve Password ===" << std::endl;
+    std::cout << "=== Retrieve Credentials ===" << std::endl;
     
     if (!Vault::vaultExists(vaultPath_)) {
         std::cerr << "Error: Vault does not exist. Use 'spm init' first" << std::endl;
@@ -217,18 +217,17 @@ void CLI::handleGet() {
     }
     
     std::string service = getInput("Enter service name: ");
-    std::string username = getInput("Enter username/email: ");
     
     try {
-        std::string password = vault_->getPassword(service, username);
-        std::cout << "\nService: " << service << std::endl;
+        auto [username, password] = vault_->getCredentials(service);
+        std::cout << "\nService:  " << service << std::endl;
         std::cout << "Username: " << username << std::endl;
         std::cout << "Password: " << password << std::endl;
         std::cout << "\n*** Remember to clear your screen after copying! ***" << std::endl;
     } catch (const ValidationError& e) {
         std::cerr << "Validation error: " << e.what() << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "Error: Password not found or retrieval failed" << std::endl;
+        std::cerr << "Error: Entry not found for service '" << service << "'" << std::endl;
     }
     
     vault_->lock();

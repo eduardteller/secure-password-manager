@@ -331,6 +331,34 @@ std::string Vault::getPassword(const std::string& service, const std::string& us
     }
 }
 
+std::pair<std::string, std::string> Vault::getCredentials(const std::string& service) {
+    try {
+        requireUnlocked();
+        
+        InputValidator::requireValidServiceName(service);
+        
+        auto it = entries_.find(service);
+        if (it == entries_.end()) {
+            Logger::getInstance().logOperation(EventType::GET_ENTRY, false, sessionId_);
+            throw std::runtime_error("Service not found");
+        }
+        
+        // Decrypt username and password
+        std::string decryptedUsername = crypto_->decrypt(it->second.encryptedUsername, currentMasterPassword_);
+        std::string decryptedPassword = crypto_->decrypt(it->second.encryptedPassword, currentMasterPassword_);
+        
+        Logger::getInstance().logOperation(EventType::GET_ENTRY, true, sessionId_);
+        return {decryptedUsername, decryptedPassword};
+    } catch (const ValidationError& e) {
+        Logger::getInstance().log(LogLevel::ERROR, EventType::VALIDATION_ERROR, 
+            e.what(), sessionId_);
+        throw;
+    } catch (const std::exception& e) {
+        Logger::getInstance().logOperation(EventType::GET_ENTRY, false, sessionId_);
+        throw std::runtime_error("Failed to retrieve credentials");
+    }
+}
+
 bool Vault::deletePassword(const std::string& service, const std::string& username) {
     try {
         requireUnlocked();
