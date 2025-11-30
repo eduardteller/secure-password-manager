@@ -54,7 +54,7 @@ private:
     std::string getCurrentTimestamp();
     
     std::ofstream logFile_;
-    std::mutex mutex_;
+    std::recursive_mutex mutex_;
     bool initialized_;
 };
 

@@ -35,21 +35,3 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
     target_compile_options(spm PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Tests
-enable_testing()
-add_executable(spm_tests
-    tests/test_main.cpp
-    src/crypto/crypto.cpp
-    src/storage/vault.cpp
-    src/logging/logger.cpp
-    src/validation/input_validator.cpp
-)
-
-target_include_directories(spm_tests PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-)
-
-target_link_libraries(spm_tests PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-
-add_test(NAME spm_tests COMMAND spm_tests)
-

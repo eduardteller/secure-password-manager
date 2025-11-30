@@ -19,7 +19,7 @@ Logger& Logger::getInstance() {
 }
 
 void Logger::initialize(const std::string& logPath) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     
     if (initialized_) {
         return;
@@ -82,7 +82,7 @@ void Logger::log(LogLevel level, EventType event, const std::string& message) {
 }
 
 void Logger::log(LogLevel level, EventType event, const std::string& message, const std::string& sessionId) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     
     std::stringstream logEntry;
     logEntry << "[" << getCurrentTimestamp() << "] "
