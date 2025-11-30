@@ -10,6 +10,24 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "${ARCH}")
 endif()
 
+if(DEFINED TARGET_ARCH)
+    if(TARGET_ARCH STREQUAL "x86")
+        if(MSVC)
+            set(CMAKE_GENERATOR_PLATFORM Win32)
+        else()
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+        endif()
+    elseif(TARGET_ARCH STREQUAL "x64")
+        if(MSVC)
+            set(CMAKE_GENERATOR_PLATFORM x64)
+        else()
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
+        endif()
+    endif()
+endif()
+
 add_executable(spm
     src/main.cpp
     src/crypto/crypto.cpp
@@ -27,7 +45,17 @@ target_include_directories(spm PRIVATE
 find_package(OpenSSL REQUIRED)
 target_link_libraries(spm PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
     target_compile_options(spm PRIVATE -Wall -Wextra -Wpedantic)
+elseif(MSVC)
+    target_compile_options(spm PRIVATE /W4 /permissive-)
+    target_compile_definitions(spm PRIVATE
+        _CRT_SECURE_NO_WARNINGS
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
 endif()
 
+if(WIN32)
+    target_link_libraries(spm PRIVATE ws2_32 crypt32)
+endif()
