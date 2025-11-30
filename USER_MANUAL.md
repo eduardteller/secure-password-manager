@@ -153,11 +153,10 @@ On Windows, these are in `%USERPROFILE%`.
 
 ## Troubleshooting
 
-| Problem                          | Solution                              |
-| -------------------------------- | ------------------------------------- |
-| "Clipboard unavailable" on Linux | Install `xclip` or `xsel`             |
-| OpenSSL not found                | Set `OPENSSL_ROOT_DIR` in CMake       |
-| Build fails on Windows           | Ensure OpenSSL path is in system PATH |
+| Problem                          | Solution                        |
+| -------------------------------- | ------------------------------- |
+| "Clipboard unavailable" on Linux | Install `xclip` or `xsel`       |
+| OpenSSL not found                | Set `OPENSSL_ROOT_DIR` in CMake |
 
 ### Setting OpenSSL Path (if needed)
 
