@@ -6,9 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
-#include <chrono>
-#include <iomanip>
-#include <algorithm>
 
 namespace json_helper {
     std::string escape(const std::string& str) {
@@ -58,11 +55,9 @@ Vault::Vault()
     : crypto_(std::make_unique<Crypto>())
     , isLocked_(true)
     , initialized_(false) {
-    auto now = std::chrono::system_clock::now();
-    auto timestamp = std::chrono::system_clock::to_time_t(now);
-    std::stringstream ss;
-    ss << "session_" << timestamp << "_" << (rand() % 10000);
-    sessionId_ = ss.str();
+    // Generate cryptographically secure session ID
+    std::vector<uint8_t> randomBytes = crypto_->randomBytes(16);
+    sessionId_ = "session_" + crypto_->toBase64(randomBytes);
 }
 
 Vault::~Vault() {

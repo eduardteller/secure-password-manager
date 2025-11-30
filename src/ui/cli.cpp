@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <cstdio>
+#include <thread>
+#include <chrono>
 
 CLI::CLI() : vault_(std::make_unique<Vault>()) {
     vaultPath_ = getDefaultVaultPath();
@@ -56,6 +59,39 @@ std::string CLI::getInput(const std::string& prompt) {
 bool CLI::confirmAction(const std::string& prompt) {
     std::string response = getInput(prompt + " (yes/no): ");
     return (response == "yes" || response == "y");
+}
+
+bool CLI::copyToClipboard(const std::string& text) {
+    FILE* pipe = nullptr;
+    
+#if defined(__APPLE__)
+    pipe = popen("pbcopy", "w");
+#elif defined(__linux__)
+    // Try xclip first, then xsel
+    pipe = popen("xclip -selection clipboard 2>/dev/null", "w");
+    if (!pipe) {
+        pipe = popen("xsel --clipboard --input 2>/dev/null", "w");
+    }
+#elif defined(_WIN32)
+    pipe = popen("clip", "w");
+#endif
+    
+    if (!pipe) {
+        return false;
+    }
+    
+    size_t written = fwrite(text.c_str(), 1, text.length(), pipe);
+    int result = pclose(pipe);
+    
+    return (written == text.length() && result == 0);
+}
+
+void CLI::clearClipboardAfterDelay(int seconds) {
+    std::thread([this, seconds]() {
+        std::this_thread::sleep_for(std::chrono::seconds(seconds));
+        copyToClipboard("");
+        // Note: We can't print from the background thread safely
+    }).detach();
 }
 
 int CLI::run(int argc, char* argv[]) {
@@ -218,8 +254,15 @@ void CLI::handleGet() {
         auto [username, password] = vault_->getCredentials(service);
         std::cout << "\nService:  " << service << std::endl;
         std::cout << "Username: " << username << std::endl;
-        std::cout << "Password: " << password << std::endl;
-        std::cout << "\n*** Remember to clear your screen after copying! ***" << std::endl;
+        
+        if (copyToClipboard(password)) {
+            std::cout << "Password: [COPIED TO CLIPBOARD]" << std::endl;
+            std::cout << "\n*** Clipboard will be cleared in 30 seconds ***" << std::endl;
+            clearClipboardAfterDelay(30);
+        } else {
+            std::cerr << "Warning: Could not copy to clipboard. Install xclip or xsel on Linux." << std::endl;
+            std::cout << "Password: [HIDDEN - clipboard unavailable]" << std::endl;
+        }
     } catch (const ValidationError& e) {
         std::cerr << "Validation error: " << e.what() << std::endl;
     } catch (const std::exception& e) {

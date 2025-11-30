@@ -34,9 +34,13 @@ public:
     
     void log(LogLevel level, EventType event, const std::string& message);
     void log(LogLevel level, EventType event, const std::string& message, const std::string& sessionId);
+    void log(LogLevel level, EventType event, const std::string& message, 
+             const std::string& sessionId, const std::string& ipAddress);
     
-    void logAuthAttempt(bool success, const std::string& sessionId);
-    void logOperation(EventType event, bool success, const std::string& sessionId);
+    void logAuthAttempt(bool success, const std::string& sessionId, 
+                        const std::string& ipAddress = "127.0.0.1");
+    void logOperation(EventType event, bool success, const std::string& sessionId,
+                      const std::string& ipAddress = "127.0.0.1");
     
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;

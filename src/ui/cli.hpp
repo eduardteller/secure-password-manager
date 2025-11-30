@@ -28,6 +28,8 @@ private:
     std::string getInput(const std::string& prompt);
     bool confirmAction(const std::string& prompt);
     std::string getDefaultVaultPath();
+    bool copyToClipboard(const std::string& text);
+    void clearClipboardAfterDelay(int seconds);
     
     std::unique_ptr<Vault> vault_;
     std::string vaultPath_;

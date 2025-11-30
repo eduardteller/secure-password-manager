@@ -77,16 +77,22 @@ std::string Logger::eventTypeToString(EventType event) {
 }
 
 void Logger::log(LogLevel level, EventType event, const std::string& message) {
-    log(level, event, message, "");
+    log(level, event, message, "", "127.0.0.1");
 }
 
 void Logger::log(LogLevel level, EventType event, const std::string& message, const std::string& sessionId) {
+    log(level, event, message, sessionId, "127.0.0.1");
+}
+
+void Logger::log(LogLevel level, EventType event, const std::string& message, 
+                 const std::string& sessionId, const std::string& ipAddress) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     
     std::stringstream logEntry;
     logEntry << "[" << getCurrentTimestamp() << "] "
              << "[" << logLevelToString(level) << "] "
-             << "[" << eventTypeToString(event) << "] ";
+             << "[" << eventTypeToString(event) << "] "
+             << "[IP: " << ipAddress << "] ";
     
     if (!sessionId.empty()) {
         logEntry << "[Session: " << sessionId << "] ";
@@ -104,19 +110,19 @@ void Logger::log(LogLevel level, EventType event, const std::string& message, co
     }
 }
 
-void Logger::logAuthAttempt(bool success, const std::string& sessionId) {
+void Logger::logAuthAttempt(bool success, const std::string& sessionId, const std::string& ipAddress) {
     if (success) {
         log(LogLevel::SECURITY, EventType::UNLOCK_SUCCESS, 
-            "Authentication successful", sessionId);
+            "Authentication successful", sessionId, ipAddress);
     } else {
         log(LogLevel::SECURITY, EventType::UNLOCK_FAILURE, 
-            "Authentication failed", sessionId);
+            "Authentication failed", sessionId, ipAddress);
     }
 }
 
-void Logger::logOperation(EventType event, bool success, const std::string& sessionId) {
+void Logger::logOperation(EventType event, bool success, const std::string& sessionId, const std::string& ipAddress) {
     LogLevel level = success ? LogLevel::INFO : LogLevel::ERROR;
     std::string message = success ? "Operation completed" : "Operation failed";
-    log(level, event, message, sessionId);
+    log(level, event, message, sessionId, ipAddress);
 }
 
