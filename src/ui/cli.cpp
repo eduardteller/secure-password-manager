@@ -320,7 +320,7 @@ void CLI::handleList() {
 }
 
 void CLI::handleDelete() {
-    std::cout << "=== Delete Password Entry ===" << std::endl;
+    std::cout << "=== Delete Entry ===" << std::endl;
     
     if (!Vault::vaultExists(vaultPath_)) {
         std::cerr << "Error: Vault does not exist" << std::endl;
@@ -335,19 +335,32 @@ void CLI::handleDelete() {
     }
     
     std::string service = getInput("Enter service name: ");
-    std::string username = getInput("Enter username/email: ");
     
-    if (!confirmAction("Are you sure you want to delete this entry?")) {
+    // Show what will be deleted
+    std::string username;
+    try {
+        auto [user, pass] = vault_->getCredentials(service);
+        username = user;
+        std::cout << "\nEntry to delete:" << std::endl;
+        std::cout << "  Service:  " << service << std::endl;
+        std::cout << "  Username: " << username << std::endl;
+    } catch (...) {
+        std::cerr << "Error: Entry not found for service '" << service << "'" << std::endl;
+        vault_->lock();
+        return;
+    }
+    
+    if (!confirmAction("\nAre you sure you want to delete this entry?")) {
         std::cout << "Deletion cancelled" << std::endl;
         vault_->lock();
         return;
     }
     
     try {
-        if (vault_->deletePassword(service, username)) {
+        if (vault_->deleteEntry(service)) {
             std::cout << "Success: Entry deleted" << std::endl;
         } else {
-            std::cerr << "Error: Entry not found" << std::endl;
+            std::cerr << "Error: Failed to delete entry" << std::endl;
         }
     } catch (const ValidationError& e) {
         std::cerr << "Validation error: " << e.what() << std::endl;

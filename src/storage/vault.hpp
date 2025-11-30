@@ -44,6 +44,9 @@ public:
     // Delete a password entry
     bool deletePassword(const std::string& service, const std::string& username);
     
+    // Delete entry by service name only
+    bool deleteEntry(const std::string& service);
+    
     // List all services
     std::vector<std::string> listServices();
     

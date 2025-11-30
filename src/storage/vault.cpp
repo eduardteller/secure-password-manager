@@ -398,6 +398,38 @@ bool Vault::deletePassword(const std::string& service, const std::string& userna
     }
 }
 
+bool Vault::deleteEntry(const std::string& service) {
+    try {
+        requireUnlocked();
+        
+        InputValidator::requireValidServiceName(service);
+        
+        auto it = entries_.find(service);
+        if (it == entries_.end()) {
+            return false;
+        }
+        
+        // Securely wipe entry before deletion
+        Crypto::secureWipe(it->second.encryptedUsername);
+        Crypto::secureWipe(it->second.encryptedPassword);
+        
+        entries_.erase(it);
+        
+        // Auto-save
+        save();
+        
+        Logger::getInstance().logOperation(EventType::DELETE_ENTRY, true, sessionId_);
+        return true;
+    } catch (const ValidationError& e) {
+        Logger::getInstance().log(LogLevel::ERROR, EventType::VALIDATION_ERROR, 
+            e.what(), sessionId_);
+        return false;
+    } catch (const std::exception& e) {
+        Logger::getInstance().logOperation(EventType::DELETE_ENTRY, false, sessionId_);
+        return false;
+    }
+}
+
 std::vector<std::string> Vault::listServices() {
     try {
         requireUnlocked();
