@@ -1,0 +1,34 @@
+# Build directories
+build/
+cmake-build-*/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Testing
+Testing/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Vault files (example)
+*.vault
+
