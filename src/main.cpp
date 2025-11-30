@@ -1,7 +1,9 @@
 #include <iostream>
+#include "ui/cli.hpp"
 
-int main() {
-    std::cout << "Secure Password Manager (dev build)" << std::endl;
-    return 0;
+int main(int argc, char* argv[]) {
+    CLI cli;
+    return cli.run(argc, argv);
 }
+
 

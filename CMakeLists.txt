@@ -5,8 +5,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# For macOS: prefer libc++ (usually default with clang)
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+# For macOS: Build only for current architecture
+if(APPLE)
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(CMAKE_OSX_ARCHITECTURES "${ARCH}")
+endif()
 
 # Add main executable
 add_executable(spm
@@ -14,6 +17,8 @@ add_executable(spm
     src/crypto/crypto.cpp
     src/storage/vault.cpp
     src/ui/cli.cpp
+    src/logging/logger.cpp
+    src/validation/input_validator.cpp
 )
 
 target_include_directories(spm PRIVATE
@@ -21,19 +26,30 @@ target_include_directories(spm PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# Example: link OpenSSL if you choose to use it
+# Link OpenSSL
 find_package(OpenSSL REQUIRED)
 target_link_libraries(spm PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
 # Enable extra warnings for secure coding
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
-    target_compile_options(spm PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
+    target_compile_options(spm PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Tests (we can wire this up later with a test framework)
+# Tests
 enable_testing()
 add_executable(spm_tests
     tests/test_main.cpp
+    src/crypto/crypto.cpp
+    src/storage/vault.cpp
+    src/logging/logger.cpp
+    src/validation/input_validator.cpp
 )
+
+target_include_directories(spm_tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(spm_tests PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
 add_test(NAME spm_tests COMMAND spm_tests)
 
