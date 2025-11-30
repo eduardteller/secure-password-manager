@@ -3,13 +3,19 @@
 #include "../logging/logger.hpp"
 #include "../validation/input_validator.hpp"
 #include <iostream>
-#include <termios.h>
-#include <unistd.h>
 #include <cstdlib>
-#include <sys/stat.h>
 #include <cstdio>
 #include <thread>
 #include <chrono>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
 
 CLI::CLI() : vault_(std::make_unique<Vault>()) {
     vaultPath_ = getDefaultVaultPath();
@@ -19,7 +25,11 @@ CLI::~CLI() {
 }
 
 std::string CLI::getDefaultVaultPath() {
+#ifdef _WIN32
+    const char* home = getenv("USERPROFILE");
+#else
     const char* home = getenv("HOME");
+#endif
     if (!home) {
         return "./vault.spm";
     }
@@ -31,16 +41,29 @@ std::string CLI::getPassword(const std::string& prompt) {
     std::cout << prompt;
     std::cout.flush();
     
+    std::string password;
+    
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+    GetConsoleMode(hStdin, &mode);
+    SetConsoleMode(hStdin, mode & ~ENABLE_ECHO_INPUT);
+    
+    std::getline(std::cin, password);
+    
+    SetConsoleMode(hStdin, mode);
+#else
     termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     
-    std::string password;
     std::getline(std::cin, password);
     
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+#endif
+    
     std::cout << std::endl;
     
     return InputValidator::sanitize(password);
@@ -93,7 +116,11 @@ void CLI::clearClipboardAfterDelay(int seconds) {
 }
 
 int CLI::run(int argc, char* argv[]) {
+#ifdef _WIN32
+    const char* home = getenv("USERPROFILE");
+#else
     const char* home = getenv("HOME");
+#endif
     std::string logPath = home ? (std::string(home) + "/.spm_log") : "./spm_log";
     
     Logger::getInstance().initialize(logPath);
