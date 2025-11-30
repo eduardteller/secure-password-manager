@@ -25,11 +25,77 @@ brew install cmake openssl
 
 ### Windows
 
-1. Install [Visual Studio 2019+](https://visualstudio.microsoft.com/) with C++ workload
-2. Install [CMake](https://cmake.org/download/)
-3. Install OpenSSL:
-   - Download from [slproweb.com/products/Win32OpenSSL.html](https://slproweb.com/products/Win32OpenSSL.html)
-   - Or use vcpkg: `vcpkg install openssl:x64-windows`
+To build SPM on Windows using GCC and OpenSSL, follow these steps:
+
+#### 1. Install MSYS2
+
+Download and install MSYS2 from:
+
+https://www.msys2.org/
+
+After installation, open the terminal named:
+
+**MSYS2 UCRT64**
+
+#### 2. Update MSYS2
+
+In the UCRT64 terminal:
+
+```bash
+pacman -Syu
+```
+
+Close the terminal when it tells you, then reopen MSYS2 UCRT64 and continue:
+
+```bash
+pacman -Syu
+```
+
+#### 3. Install required packages (GCC, CMake, OpenSSL)
+
+Run in MSYS2 UCRT64:
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-gcc
+pacman -S mingw-w64-ucrt-x86_64-cmake
+pacman -S mingw-w64-ucrt-x86_64-openssl
+pacman -S mingw-w64-ucrt-x86_64-make
+```
+
+This installs:
+
+- GCC compiler
+- CMake
+- OpenSSL (libraries + headers)
+- MinGW mingw32-make build tool
+
+#### 4. Build the project with MinGW
+
+Navigate to your project folder inside the UCRT64 terminal:
+
+```bash
+cd /c/Users/<YourUser>/Desktop/secure-password-manager-main
+mkdir build
+cd build
+```
+
+Run CMake:
+
+```bash
+cmake .. -G "MinGW Makefiles" -DOPENSSL_ROOT_DIR="C:/msys64/ucrt64"
+```
+
+Then compile:
+
+```bash
+mingw32-make
+```
+
+If successful, the executable will be:
+
+```
+build/spm.exe
+```
 
 ## Building
 
@@ -42,21 +108,6 @@ make
 ```
 
 The executable `spm` will be in the `build/` folder.
-
-### Windows (Visual Studio)
-
-```cmd
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022" -A x64
-cmake --build . --config Release
-```
-
-### Windows (32-bit)
-
-```cmd
-cmake .. -G "Visual Studio 17 2022" -A Win32
-cmake --build . --config Release
-```
 
 ## Commands
 
