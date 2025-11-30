@@ -62,14 +62,11 @@ bool CLI::confirmAction(const std::string& prompt) {
 }
 
 int CLI::run(int argc, char* argv[]) {
-    std::cout << "DEBUG: Entering CLI::run" << std::endl;
     // Initialize logger
     const char* home = getenv("HOME");
     std::string logPath = home ? (std::string(home) + "/.spm_log") : "./spm_log";
     
-    std::cout << "DEBUG: Initializing logger at " << logPath << std::endl;
     Logger::getInstance().initialize(logPath);
-    std::cout << "DEBUG: Logger initialized" << std::endl;
     
     if (argc < 2) {
         printHelp();

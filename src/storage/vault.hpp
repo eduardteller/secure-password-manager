@@ -77,7 +77,7 @@ private:
     std::unique_ptr<Crypto> crypto_;
     std::string filepath_;
     std::string masterPasswordHash_;
-    std::string masterKey_;  // Derived from master password, used for encryption
+    std::string currentMasterPassword_;  // Stored only while unlocked, wiped on lock
     std::string sessionId_;
     bool isLocked_;
     bool initialized_;

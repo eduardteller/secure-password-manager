@@ -69,8 +69,8 @@ Vault::Vault()
 
 Vault::~Vault() {
     // Securely wipe sensitive data
-    Crypto::secureWipe(masterKey_);
     Crypto::secureWipe(masterPasswordHash_);
+    Crypto::secureWipe(currentMasterPassword_);
     
     // Wipe all encrypted entries
     for (auto& pair : entries_) {
@@ -107,11 +107,8 @@ bool Vault::initialize(const std::string& filepath, const std::string& masterPas
         // Hash the master password
         masterPasswordHash_ = crypto_->hash(masterPassword);
         
-        // Derive master key for encryption
-        std::vector<uint8_t> salt = crypto_->randomBytes(16);
-        std::vector<uint8_t> keyBytes = crypto_->deriveKey(masterPassword, salt, 32);
-        masterKey_ = std::string(keyBytes.begin(), keyBytes.end());
-        Crypto::secureWipe(keyBytes);
+        // Store master password for encryption (wiped on lock)
+        currentMasterPassword_ = masterPassword;
         
         // Initialize as unlocked and empty
         isLocked_ = false;
@@ -186,11 +183,8 @@ bool Vault::load(const std::string& filepath, const std::string& masterPassword)
             return false;
         }
         
-        // Derive master key for decryption
-        std::vector<uint8_t> salt = crypto_->randomBytes(16);
-        std::vector<uint8_t> keyBytes = crypto_->deriveKey(masterPassword, salt, 32);
-        masterKey_ = std::string(keyBytes.begin(), keyBytes.end());
-        Crypto::secureWipe(keyBytes);
+        // Store master password for encryption (wiped on lock)
+        currentMasterPassword_ = masterPassword;
         
         isLocked_ = false;
         initialized_ = true;
@@ -210,15 +204,15 @@ bool Vault::load(const std::string& filepath, const std::string& masterPassword)
 
 bool Vault::save() {
     try {
-        if (filepath_.empty()) {
+        if (filepath_.empty() || currentMasterPassword_.empty()) {
             return false;
         }
         
         // Serialize to JSON
         std::string json = serializeToJson();
         
-        // Encrypt the vault data
-        std::vector<uint8_t> encryptedData = crypto_->encrypt(json, masterKey_);
+        // Encrypt the vault data with master password (matches load() decryption)
+        std::vector<uint8_t> encryptedData = crypto_->encrypt(json, currentMasterPassword_);
         
         // Write to file
         std::ofstream file(filepath_, std::ios::binary);
@@ -260,7 +254,7 @@ bool Vault::unlock(const std::string& masterPassword) {
 
 void Vault::lock() {
     isLocked_ = true;
-    Crypto::secureWipe(masterKey_);
+    Crypto::secureWipe(currentMasterPassword_);
     Logger::getInstance().log(LogLevel::INFO, EventType::LOCK, 
         "Vault locked", sessionId_);
 }
@@ -280,10 +274,11 @@ void Vault::setPassword(const std::string& service, const std::string& username,
         InputValidator::requireValidUsername(username);
         InputValidator::requireValidPassword(password);
         
-        // Encrypt username and password
+        // Encrypt username and password with master password
+        // (encrypt() handles key derivation internally with stored salt)
         Entry entry;
-        entry.encryptedUsername = crypto_->encrypt(username, masterKey_);
-        entry.encryptedPassword = crypto_->encrypt(password, masterKey_);
+        entry.encryptedUsername = crypto_->encrypt(username, currentMasterPassword_);
+        entry.encryptedPassword = crypto_->encrypt(password, currentMasterPassword_);
         
         entries_[service] = entry;
         
@@ -315,14 +310,14 @@ std::string Vault::getPassword(const std::string& service, const std::string& us
         }
         
         // Decrypt and verify username
-        std::string decryptedUsername = crypto_->decrypt(it->second.encryptedUsername, masterKey_);
+        std::string decryptedUsername = crypto_->decrypt(it->second.encryptedUsername, currentMasterPassword_);
         if (decryptedUsername != username) {
             Logger::getInstance().logOperation(EventType::GET_ENTRY, false, sessionId_);
             throw std::runtime_error("Username does not match");
         }
         
         // Decrypt password
-        std::string decryptedPassword = crypto_->decrypt(it->second.encryptedPassword, masterKey_);
+        std::string decryptedPassword = crypto_->decrypt(it->second.encryptedPassword, currentMasterPassword_);
         
         Logger::getInstance().logOperation(EventType::GET_ENTRY, true, sessionId_);
         return decryptedPassword;
@@ -349,7 +344,7 @@ bool Vault::deletePassword(const std::string& service, const std::string& userna
         }
         
         // Decrypt and verify username
-        std::string decryptedUsername = crypto_->decrypt(it->second.encryptedUsername, masterKey_);
+        std::string decryptedUsername = crypto_->decrypt(it->second.encryptedUsername, currentMasterPassword_);
         if (decryptedUsername != username) {
             return false;
         }
