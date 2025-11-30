@@ -67,7 +67,6 @@ bool CLI::copyToClipboard(const std::string& text) {
 #if defined(__APPLE__)
     pipe = popen("pbcopy", "w");
 #elif defined(__linux__)
-    // Try xclip first, then xsel
     pipe = popen("xclip -selection clipboard 2>/dev/null", "w");
     if (!pipe) {
         pipe = popen("xsel --clipboard --input 2>/dev/null", "w");
@@ -90,7 +89,6 @@ void CLI::clearClipboardAfterDelay(int seconds) {
     std::thread([this, seconds]() {
         std::this_thread::sleep_for(std::chrono::seconds(seconds));
         copyToClipboard("");
-        // Note: We can't print from the background thread safely
     }).detach();
 }
 

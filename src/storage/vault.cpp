@@ -55,7 +55,6 @@ Vault::Vault()
     : crypto_(std::make_unique<Crypto>())
     , isLocked_(true)
     , initialized_(false) {
-    // Generate cryptographically secure session ID
     std::vector<uint8_t> randomBytes = crypto_->randomBytes(16);
     sessionId_ = "session_" + crypto_->toBase64(randomBytes);
 }
