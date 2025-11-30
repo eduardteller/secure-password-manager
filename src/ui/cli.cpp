@@ -115,7 +115,7 @@ void CLI::printHelp() {
     std::cout << "  init         Initialize a new password vault" << std::endl;
     std::cout << "  add          Add a new password entry" << std::endl;
     std::cout << "  get          Retrieve credentials (username & password)" << std::endl;
-    std::cout << "  update       Update an existing password" << std::endl;
+    std::cout << "  update       Update existing credentials" << std::endl;
     std::cout << "  list         List all services" << std::endl;
     std::cout << "  delete       Delete a password entry" << std::endl;
     std::cout << "  help         Show this help message" << std::endl;
@@ -234,7 +234,7 @@ void CLI::handleGet() {
 }
 
 void CLI::handleUpdate() {
-    std::cout << "=== Update Password ===" << std::endl;
+    std::cout << "=== Update Credentials ===" << std::endl;
     
     if (!Vault::vaultExists(vaultPath_)) {
         std::cerr << "Error: Vault does not exist. Use 'spm init' first" << std::endl;
@@ -249,26 +249,38 @@ void CLI::handleUpdate() {
     }
     
     std::string service = getInput("Enter service name: ");
-    std::string username = getInput("Enter username/email: ");
     
-    // Verify entry exists
+    // Retrieve existing credentials
+    std::string currentUsername, currentPassword;
     try {
-        vault_->getPassword(service, username);
+        auto [user, pass] = vault_->getCredentials(service);
+        currentUsername = user;
+        currentPassword = pass;
     } catch (...) {
-        std::cerr << "Error: Entry not found" << std::endl;
+        std::cerr << "Error: Entry not found for service '" << service << "'" << std::endl;
         vault_->lock();
         return;
     }
     
-    std::string newPassword = getPassword("Enter new password: ");
+    std::cout << "\nCurrent username: " << currentUsername << std::endl;
+    
+    std::string newUsername = getInput("New username (press Enter to keep current): ");
+    if (newUsername.empty()) {
+        newUsername = currentUsername;
+    }
+    
+    std::string newPassword = getPassword("New password (press Enter to keep current): ");
+    if (newPassword.empty()) {
+        newPassword = currentPassword;
+    }
     
     try {
-        vault_->setPassword(service, username, newPassword);
-        std::cout << "Success: Password updated for " << service << std::endl;
+        vault_->setPassword(service, newUsername, newPassword);
+        std::cout << "Success: Credentials updated for " << service << std::endl;
     } catch (const ValidationError& e) {
         std::cerr << "Validation error: " << e.what() << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "Error: Failed to update password" << std::endl;
+        std::cerr << "Error: Failed to update credentials" << std::endl;
     }
     
     vault_->lock();
